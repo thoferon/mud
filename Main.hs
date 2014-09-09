@@ -18,7 +18,7 @@ main = do
     n : v : d : []           -> return (n, Just v,  Just d,  [])
     _ -> hPutStrLn stderr "Error: Invalid parameters" >> exitFailure
 
-  mErr <- deploy options projectName mVersion mDestination customArgs
+  mErr <- runScript options projectName mVersion mDestination customArgs
   case mErr of
     Just err -> do
       hPutStrLn stderr $ "Deployment error: " ++ humanReadableMudError err

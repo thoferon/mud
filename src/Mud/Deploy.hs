@@ -1,5 +1,5 @@
 module Mud.Deploy
-  ( deploy
+  ( runScript
   ) where
 
 import System.Environment
@@ -12,9 +12,9 @@ import Mud.Config
 import Mud.Error
 import Mud.Options
 
-deploy :: Options -> String -> Maybe String -> Maybe FilePath -> [String]
-       -> IO (Maybe MudError)
-deploy opts projectName mVersion mBasePath customArgs = do
+runScript :: Options -> String -> Maybe String -> Maybe FilePath -> [String]
+          -> IO (Maybe MudError)
+runScript opts projectName mVersion mBasePath customArgs = do
   eConfig <- parseConfigFile projectName
 
   case eConfig of
@@ -34,7 +34,9 @@ deploy opts projectName mVersion mBasePath customArgs = do
           setUserID $ userID userEntry
         Nothing -> return ()
 
-      let args =
+      let script | optDeploy opts = cfgDeployScript   cfg
+                 | otherwise      = cfgUndeployScript cfg
+          args =
             [ projectName
             , maybe (cfgVersion  cfg) id mVersion
             , maybe (cfgBasePath cfg) id mBasePath
@@ -46,11 +48,10 @@ deploy opts projectName mVersion mBasePath customArgs = do
 
       if optDryRun opts
         then do
-          hPutStrLn stderr $ "Would execute " ++ cfgScriptPath cfg ++ " with "
-                                              ++ show args
+          hPutStrLn stderr $ "Would execute " ++ script ++ " with " ++ show args
           return Nothing
         else do
-          ph <- runProcess (cfgScriptPath cfg) args Nothing (Just env')
+          ph <- runProcess script args Nothing (Just env')
                            Nothing Nothing Nothing
           exitCode <- waitForProcess ph
 

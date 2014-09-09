@@ -13,14 +13,17 @@ data Options = Options
   { optDryRun :: Bool
   , optUser   :: Maybe String
   , optGroup  :: Maybe String
+  , optDeploy :: Bool
   } deriving (Show, Eq)
 
 parseOptions :: Parser Options
 parseOptions = Options
     <$> flag False True (long "dry-run"
                          <> help "Don't actually run anything on the system")
-    <*> maybeOption (short 'u' <> long "user" <> help "User to deploy as")
+    <*> maybeOption (short 'u' <> long "user"  <> help "User to deploy as")
     <*> maybeOption (short 'g' <> long "group" <> help "Group to deploy as")
+    <*> flag True False (long "undeploy"
+                         <> help "Undeploy the specified version of the app")
   where
     maybeOption :: Mod OptionFields String -> Parser (Maybe String)
     maybeOption mods =
