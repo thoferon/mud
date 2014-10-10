@@ -37,8 +37,8 @@ It's also possible to have several configuration files for one project.
 For example, you might want to run different steps with different users. In
 order to do that, create a directory with the same path than if you had one
 configuration file but without the extension. In this example, it should be
-`/usr/local/etc/mud/myApp`. Mud will read all the files in the directory and
-"run" them in alphabetical order.
+`/usr/local/etc/mud/myApp`. Mud will read all the files finishing with `.conf`
+in the directory and "run" them in alphabetical order.
 
 Note that if a `.conf` file exists, the directory will be ignored.
 

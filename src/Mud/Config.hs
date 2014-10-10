@@ -55,8 +55,8 @@ parseConfigFiles projectName = do
         if checkDirExistence
           then do
             paths <- liftIO $ getDirectoryContents configBasePath
-            forM (sort paths) $ \path -> do
-              contents <- liftIO $ readFile path
+            forM (filter (".conf" `isSuffixOf`) $ sort paths) $ \path -> do
+              contents <- liftIO $ readFile $ configBasePath </> path
               parseConfigFile configBasePath contents
           else
             throwError $ MudErrorNoConfigFound configBasePath
