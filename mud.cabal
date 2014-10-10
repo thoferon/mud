@@ -18,6 +18,7 @@ executable mud
   ghc-options:         -Wall
   build-depends:       base >=4.6 && <4.7
                      , mud
+                     , mtl
 
 library
   hs-source-dirs:      src
@@ -33,3 +34,5 @@ library
                      , filepath
                      , unix ==2.7.*
                      , process ==1.2.*
+                     , directory
+                     , mtl ==2.1.*

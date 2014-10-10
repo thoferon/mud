@@ -1,15 +1,19 @@
 module Mud.Config
   ( Config(..)
-  , parseConfigFile
+  , parseConfigFiles
   , computeConfig
   ) where
 
-import Paths_mud
+import Control.Monad.Error
 
 import Data.List
 
+import System.Directory
 import System.FilePath
 
+import Paths_mud
+
+import Mud.Error
 import Mud.Options
 
 data Config = Config
@@ -33,19 +37,41 @@ defaultConfig path = Config
   , cfgVars           = []
   }
 
-parseConfigFile :: String -> IO (Either String Config)
-parseConfigFile projectName = do
-    sysconfdir <- getSysconfDir
+parseConfigFiles :: String -> ErrorT MudError IO [Config]
+parseConfigFiles projectName = do
+    sysconfdir <- liftIO $ getSysconfDir
     let configBasePath = sysconfdir </> "mud" </> projectName
-    contents <- readFile $ configBasePath <.> "conf"
-    return
-      . foldl' buildConfig (Right $ defaultConfig configBasePath)
-      . map ((\(a,b) -> (a, drop 1 b)) . break (=='='))
-      . filter (/="")
-      $ lines contents
+        configFilePath = configBasePath <.> "conf"
+
+    checkFileExistence <- liftIO $ doesFileExist configFilePath
+    if checkFileExistence
+      then do
+        contents <- liftIO $ readFile configFilePath
+        cfg      <- parseConfigFile configBasePath contents
+        return [cfg]
+
+      else do
+        checkDirExistence <- liftIO $ doesDirectoryExist configBasePath
+        if checkDirExistence
+          then do
+            paths <- liftIO $ getDirectoryContents configBasePath
+            forM (sort paths) $ \path -> do
+              contents <- liftIO $ readFile path
+              parseConfigFile configBasePath contents
+          else
+            throwError $ MudErrorNoConfigFound configBasePath
+
   where
-    buildConfig :: Either String Config -> (String, String)
-                -> Either String Config
+    parseConfigFile :: FilePath -> String -> ErrorT MudError IO Config
+    parseConfigFile configBasePath =
+      either throwError return
+        . foldl' buildConfig (Right $ defaultConfig configBasePath)
+        . map ((\(a,b) -> (a, drop 1 b)) . break (=='='))
+        . filter (/="")
+        . lines
+
+    buildConfig :: Either MudError Config -> (String, String)
+                -> Either MudError Config
     buildConfig err@(Left _) _ = err
     buildConfig (Right config) (name, value) = case name of
       "deploy"   -> Right config { cfgDeployScript   = value }
@@ -57,7 +83,7 @@ parseConfigFile projectName = do
       'v' : 'a' : 'r' : ':' : n ->
         let vars = filter ((/= n) . fst) $ cfgVars config
         in Right config { cfgVars = (n, value) : vars }
-      _ -> Left $ "Invalid variable '" ++ name ++ "'"
+      _ -> Left $ MudErrorUnreadableConfig $ "Invalid variable '" ++ name ++ "'"
 
 computeConfig :: Options -> Config -> Config
 computeConfig opts = changeUser . changeGroup

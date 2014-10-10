@@ -1,3 +1,5 @@
+import Control.Monad.Error
+
 import System.Exit
 import System.IO
 
@@ -18,9 +20,10 @@ main = do
     n : v : d : []           -> return (n, Just v,  Just d,  [])
     _ -> hPutStrLn stderr "Error: Invalid parameters" >> exitFailure
 
-  mErr <- runScript options projectName mVersion mDestination customArgs
-  case mErr of
-    Just err -> do
+  eRes <- runErrorT $
+    runScripts options projectName mVersion mDestination customArgs
+  case eRes of
+    Left err -> do
       hPutStrLn stderr $ "Deployment error: " ++ humanReadableMudError err
       exitFailure
-    Nothing -> hPutStrLn stderr "Successful deployment."
+    Right () -> hPutStrLn stderr "Successful deployment."
