@@ -30,7 +30,7 @@ library
                      , Mud.Error
   other-modules:       Paths_mud
   build-depends:       base >=4.6 && <4.7
-                     , optparse-applicative ==0.10.*
+                     , optparse-applicative ==0.11.*
                      , filepath
                      , unix ==2.7.*
                      , process ==1.2.*

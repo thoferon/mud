@@ -35,7 +35,7 @@ getOptions = do
   let pp = ParserPrefs
         { prefMultiSuffix     = ""
         , prefDisambiguate    = False
-        , prefShowHelpOnError = True
+        , prefShowHelpOnError = False
         , prefBacktrack       = True
         , prefColumns         = 80
         }
