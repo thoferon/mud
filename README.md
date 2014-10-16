@@ -86,10 +86,10 @@ this, you can give sudo access to your CI user (say you use Court and the user
 is `_court`) and another user `j.smith` with a configuration like the folowing
 in `/etc/sudoers`. (Use `visudo`!)
 
-    deployers = _court,j.smith
-    webservers = www.website.com,staging.website.com
+    User_Alias DEPLOYERS = _court, j.smith
+    Host_Alias WEBSERVERS = www.website.com, staging.website.com
 
-    deployers webservers = NOPASSWD: /usr/local/bin/court
+    DEPLOYERS WEBSERVERS = NOPASSWD: /usr/local/bin/court
 
 **IMPORTANT:** Mud prevents the user to choose a configuration file outside of
 the configuraton directory (something like /usr/local/etc/mud depending on your
