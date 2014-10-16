@@ -4,6 +4,7 @@ module Mud.Config
   , computeConfig
   ) where
 
+import Control.Monad
 import Control.Monad.Error
 
 import Data.List
@@ -40,9 +41,14 @@ defaultConfig path = Config
 parseConfigFiles :: String -> ErrorT MudError IO [Config]
 parseConfigFiles projectName = do
     sysconfdir <- liftIO $ getSysconfDir
-    let configBasePath = sysconfdir </> "mud" </> projectName
-        configFilePath = configBasePath <.> "conf"
+    let mudBasePath         = sysconfdir </> "mud"
+        configBasePathDirty = mudBasePath </> projectName
+    configBasePath <- liftIO $ canonicalizePath configBasePathDirty
 
+    unless ((mudBasePath ++ "/") `isPrefixOf` configBasePath) $
+      throwError MudErrorNotInMudDirectory
+
+    let configFilePath = configBasePath <.> "conf"
     checkFileExistence <- liftIO $ doesFileExist configFilePath
     if checkFileExistence
       then do

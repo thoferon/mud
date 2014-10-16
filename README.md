@@ -63,7 +63,10 @@ The short version of the arguments is as follow:
     mud project_name [version [basepath]] [-- custom_args]
 
 `version` and `basepath` overwrites their equivalent in the configuration. The
-custom arguments are simply passed to the script(s).
+custom arguments are simply passed to the script(s). For instance, you could
+type something like this:
+
+    mud website v1.0 /var/www -- --verbose
 
 # (Un)deploy scripts
 
@@ -73,3 +76,22 @@ configuration as `myName=myValue`.
 
 They should return an exit code of 0 in case of success and anything else
 otherwise.
+
+# Production and security
+
+Mud is aimed to be used by root as well as unprivileged users to deploy
+applications: you might want your build system to be able to deploy the program
+without having access to this part of the system though. In order to achieve
+this, you can give sudo access to your CI user (say you use Court and the user
+is `_court`) and another user `j.smith` with a configuration like the folowing
+in `/etc/sudoers`. (Use `visudo`!)
+
+    deployers = _court,j.smith
+    webservers = www.website.com,staging.website.com
+
+    deployers webservers = NOPASSWD: /usr/local/bin/court
+
+**IMPORTANT:** Mud prevents the user to choose a configuration file outside of
+the configuraton directory (something like /usr/local/etc/mud depending on your
+system). You need to make sure that this directory and its contents is NOT
+world-writable.
