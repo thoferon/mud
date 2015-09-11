@@ -16,7 +16,7 @@ executable mud
   main-is:             Main.hs
   default-language:    Haskell2010
   ghc-options:         -Wall
-  build-depends:       base >=4.6 && <4.7
+  build-depends:       base >=4.6 && <4.8
                      , mud
                      , mtl
 
@@ -29,7 +29,7 @@ library
                      , Mud.Deploy
                      , Mud.Error
   other-modules:       Paths_mud
-  build-depends:       base >=4.6 && <4.7
+  build-depends:       base >=4.6 && <4.8
                      , optparse-applicative ==0.11.*
                      , filepath ==1.3.*
                      , unix ==2.7.*
