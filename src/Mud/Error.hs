@@ -13,17 +13,18 @@ data MudError
   | MudErrorUnreadableConfig String
   | MudErrorScriptFailure (Either Int Signal)
   | MudErrorString String
+  deriving (Show, Eq)
 
 instance Error MudError where
   strMsg = MudErrorString
 
 humanReadableMudError :: MudError -> String
 humanReadableMudError mudError = case mudError of
-  MudErrorNoConfigFound path -> "No configuration file found for base: " ++ path
-  MudErrorNotInMudDirectory -> "The configuration must be in the mud directory"
-  MudErrorUnreadableConfig str -> "Can't read the configuration file: " ++ str
+  MudErrorNoConfigFound path -> "no configuration file found for base: " ++ path
+  MudErrorNotInMudDirectory -> "the configuration must be in the mud directory"
+  MudErrorUnreadableConfig str -> "can't read the configuration file: " ++ str
   MudErrorScriptFailure (Left code) ->
-    "Deployment script failed with exit code " ++ show code
+    "script failed with exit code " ++ show code
   MudErrorScriptFailure (Right sig) ->
-    "Deployment script interrupted with signal " ++ show sig
+    "script interrupted with signal " ++ show sig
   MudErrorString str -> str

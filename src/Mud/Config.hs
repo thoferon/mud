@@ -1,20 +1,17 @@
-module Mud.Config
-  ( Config(..)
-  , parseConfigFiles
-  , computeConfig
-  ) where
+module Mud.Config where
+
+import Prelude hiding (readFile)
 
 import Control.Monad
-import Control.Monad.Error
+import Control.Monad.Except
+import Control.Monad.Trans.Free
 
 import Data.List
 
-import System.Directory
 import System.FilePath
 
-import Paths_mud
-
 import Mud.Error
+import Mud.FileSystem
 import Mud.Options
 
 data Config = Config
@@ -38,37 +35,63 @@ defaultConfig path = Config
   , cfgVars           = []
   }
 
-parseConfigFiles :: String -> ErrorT MudError IO [Config]
-parseConfigFiles projectName = do
-    sysconfdir <- liftIO $ getSysconfDir
+data ConfigF a
+  = ParseConfigFiles String ([Config] -> a)
+  deriving Functor
+
+type ConfigT = FreeT ConfigF
+
+runConfigT :: MonadError MudError m => ConfigT m a -> FileSystemT m a
+runConfigT = iterTM interpreter
+  where
+    interpreter :: MonadError MudError m
+                => ConfigF (FileSystemT m a) -> FileSystemT m a
+    interpreter (ParseConfigFiles projectName f) =
+      actualParseConfigFiles projectName >>= f
+
+class Monad m => MonadConfig m where
+  parseConfigFiles :: String -> m [Config]
+
+instance MonadError MudError m => MonadConfig (ConfigT m) where
+  parseConfigFiles projectName = liftF $ ParseConfigFiles projectName id
+
+instance {-# OVERLAPPABLE #-} (MonadTrans t, MonadConfig m, Monad (t m))
+  => MonadConfig (t m) where
+  parseConfigFiles = lift . parseConfigFiles
+
+actualParseConfigFiles :: (MonadFileSystem m, MonadError MudError m) => String
+                       -> m [Config]
+actualParseConfigFiles projectName = do
+    sysconfdir <- getSysconfDir
     let mudBasePath         = sysconfdir </> "mud"
         configBasePathDirty = mudBasePath </> projectName
-    configBasePath <- liftIO $ canonicalizePath configBasePathDirty
+    configBasePath <- canonicalizePath configBasePathDirty
 
     unless ((mudBasePath ++ "/") `isPrefixOf` configBasePath) $
       throwError MudErrorNotInMudDirectory
 
     let configFilePath = configBasePath <.> "conf"
-    checkFileExistence <- liftIO $ doesFileExist configFilePath
+    checkFileExistence <- doesFileExist configFilePath
     if checkFileExistence
       then do
-        contents <- liftIO $ readFile configFilePath
+        contents <- readFile configFilePath
         cfg      <- parseConfigFile configBasePath contents
         return [cfg]
 
       else do
-        checkDirExistence <- liftIO $ doesDirectoryExist configBasePath
+        checkDirExistence <- doesDirectoryExist configBasePath
         if checkDirExistence
           then do
-            paths <- liftIO $ getDirectoryContents configBasePath
+            paths <- getDirectoryContents configBasePath
             forM (filter (".conf" `isSuffixOf`) $ sort paths) $ \path -> do
-              contents <- liftIO $ readFile $ configBasePath </> path
+              contents <- readFile $ configBasePath </> path
               parseConfigFile configBasePath contents
           else
             throwError $ MudErrorNoConfigFound configBasePath
 
   where
-    parseConfigFile :: FilePath -> String -> ErrorT MudError IO Config
+    parseConfigFile :: (MonadFileSystem m, MonadError MudError m) => FilePath
+                    -> String -> m Config
     parseConfigFile configBasePath =
       either throwError return
         . foldl' buildConfig (Right $ defaultConfig configBasePath)
@@ -78,18 +101,20 @@ parseConfigFiles projectName = do
 
     buildConfig :: Either MudError Config -> (String, String)
                 -> Either MudError Config
-    buildConfig err@(Left _) _ = err
-    buildConfig (Right config) (name, value) = case name of
-      "deploy"   -> Right config { cfgDeployScript   = value }
-      "undeploy" -> Right config { cfgUndeployScript = value }
-      "basepath" -> Right config { cfgBasePath       = value }
-      "user"     -> Right config { cfgUser           = Just value }
-      "group"    -> Right config { cfgGroup          = Just value }
-      "version"  -> Right config { cfgVersion        = value }
-      'v' : 'a' : 'r' : ':' : n ->
-        let vars = filter ((/= n) . fst) $ cfgVars config
-        in Right config { cfgVars = (n, value) : vars }
-      _ -> Left $ MudErrorUnreadableConfig $ "Invalid variable '" ++ name ++ "'"
+    buildConfig eConfig (name, value) = do
+      config <- eConfig
+      case name of
+        "deploy"   -> Right config { cfgDeployScript   = value }
+        "undeploy" -> Right config { cfgUndeployScript = value }
+        "basepath" -> Right config { cfgBasePath       = value }
+        "user"     -> Right config { cfgUser           = Just value }
+        "group"    -> Right config { cfgGroup          = Just value }
+        "version"  -> Right config { cfgVersion        = value }
+        'v' : 'a' : 'r' : ':' : n ->
+          let vars = filter ((/= n) . fst) $ cfgVars config
+          in Right config { cfgVars = vars ++ [(n, value)] }
+        _ -> Left $ MudErrorUnreadableConfig $
+               "invalid variable '" ++ name ++ "'"
 
 computeConfig :: Options -> Config -> Config
 computeConfig opts = changeUser . changeGroup

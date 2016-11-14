@@ -3,25 +3,18 @@ import Control.Monad.Error
 import System.Exit
 import System.IO
 
+import Mud.Common
 import Mud.Deploy
 import Mud.Error
 import Mud.Options
 
 main :: IO ()
 main = do
-  (options, args) <- getOptions
+  (cmd, options) <- getCommandOptions
 
-  (projectName, mVersion, mDestination, customArgs) <- case args of
-    n : "--" : args'         -> return (n, Nothing, Nothing, args')
-    n : v : "--" : args'     -> return (n, Just v,  Nothing, args')
-    n : v : d : "--" : args' -> return (n, Just v,  Just d,  args')
-    n : []                   -> return (n, Nothing, Nothing, [])
-    n : v : []               -> return (n, Just v,  Nothing, [])
-    n : v : d : []           -> return (n, Just v,  Just d,  [])
-    _ -> hPutStrLn stderr "Error: Invalid parameters" >> exitFailure
+  eRes <- runMud options $ case cmd of
+    Deploy projectName mVersion args -> deploy projectName mVersion args
 
-  eRes <- runErrorT $
-    runScripts options projectName mVersion mDestination customArgs
   case eRes of
     Left err -> do
       hPutStrLn stderr $ "Deployment error: " ++ humanReadableMudError err

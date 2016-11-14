@@ -1,5 +1,1 @@
-^\.cabal-sandbox$
-^dist$
-^cabal\.sandbox\.config$
-results\.json$
-^share/court/build\.
+^\.stack-work$
