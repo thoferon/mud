@@ -7,6 +7,7 @@ import System.Posix.Process
 
 import Mud.Config (Config(..), defaultConfig)
 import Mud.Deploy
+import Mud.History
 import Mud.Options
 
 import SpecHelpers
@@ -31,12 +32,13 @@ spec = do
                        ]
         name -> error $ "no mock found for parseConfigFiles " ++ show name
 
-  describe "deploy" $ do
+  describe "deployCommand" $ do
     it "runs the script specified in the config" $ do
       let runProcess Nothing Nothing "/etc/mud/simple.deploy"
                      ["simple", "", "/tmp"] [] = Exited ExitSuccess
 
-      runFakeMud mempty parseConfigFiles runProcess (deploy "simple" Nothing [])
+      runFakeMud mempty parseConfigFiles runProcess
+                 (deployCommand "simple" "" [])
         `shouldBe` Right ()
 
     it "runs the script with the user and group specified in the config" $ do
@@ -44,7 +46,7 @@ spec = do
                      ["rootwheel", "", "/root"] [] = Exited ExitSuccess
 
       runFakeMud mempty parseConfigFiles runProcess
-                 (deploy "rootwheel" Nothing [])
+                 (deployCommand "rootwheel" "" [])
         `shouldBe` Right ()
 
     it "runs all the scripts if several configs are available" $ do
@@ -54,17 +56,17 @@ spec = do
                      ["complex", "", "/two"] [] = Exited ExitSuccess
 
       runFakeMud mempty parseConfigFiles runProcess
-                 (deploy "complex" Nothing []) `shouldBe` Right ()
+                 (deployCommand "complex" "" []) `shouldBe` Right ()
 
-    it "overwrites the variables and version if available" $ do
+    it "overwrites the variables if available" $ do
       let runProcess Nothing Nothing "/etc/mud/overwrite.deploy"
                      ["overwrite", "some-version", "/tmp"]
                      [("two", "2"), ("one", "0"), ("three", "3")] =
             Exited ExitSuccess
 
       runFakeMud mempty parseConfigFiles runProcess
-                 (deploy "overwrite" (Just "some-version")
-                                     [("one", "0"), ("three", "3")])
+                 (deployCommand "overwrite" "some-version"
+                                [("one", "0"), ("three", "3")])
         `shouldBe` Right ()
 
     it "overwrites the user, group and base path if given in the options" $ do
@@ -77,5 +79,25 @@ spec = do
             }
 
       runFakeMud options parseConfigFiles runProcess
-                 (deploy "rootwheel" Nothing [])
+                 (deployCommand "rootwheel" "" [])
         `shouldBe` Right ()
+
+    describe "on history" $ do
+      let runProcess _ _ _ _ _ = Exited ExitSuccess
+          entry1a = HistDeploy "complex" someTime "version1" [("a","b")]
+          entry1b = HistDeploy "complex" someTime "version1" [("c","d")]
+          entry2  = HistDeploy "complex" someTime "version2" []
+          histories = [("/one", [entry1a]), ("/two", [entry1b])]
+
+      it "adds a new entry to each history file" $ do
+        runFakeMudHist mempty parseConfigFiles runProcess histories
+                       (deployCommand "complex" "version2" [])
+          `shouldBe` Right ((), [ ("/one", [entry1a, entry2])
+                                , ("/two", [entry1b, entry2]) ])
+
+      it "adds a new entry to the base path given in the options if any" $ do
+        runFakeMudHist (mempty { optBasePath = Just "/one" })
+                       parseConfigFiles runProcess histories
+                       (deployCommand "complex" "version2" [])
+          `shouldBe` Right ((), [ ("/one", [entry1a, entry2])
+                                , ("/two", [entry1b]) ])

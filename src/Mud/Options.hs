@@ -25,9 +25,10 @@ instance Monoid Options where
       }
 
 data Command
-  = Deploy String (Maybe String) [(String, String)]
-  | Undeploy String (Maybe String)
+  = Deploy String String [(String, String)]
+  | Undeploy String String
   | Rollback String
+  | ShowHistory String
 
 optParser :: Parser Options
 optParser = Options
@@ -47,10 +48,10 @@ withOptions :: Parser (a -> (a, Options))
 withOptions = (\o x -> (x, o)) <$> optParser
 
 projectArgument :: Parser String
-projectArgument = strArgument (metavar "PROJECT")
+projectArgument = strArgument $ metavar "PROJECT"
 
-versionArgument :: Parser (Maybe String)
-versionArgument = argument (Just <$> str) (value Nothing <> metavar "VERSION")
+versionArgument :: Parser String
+versionArgument = strArgument $ metavar "VERSION"
 
 variableOptions :: Parser [(String, String)]
 variableOptions =
@@ -76,7 +77,10 @@ cmdParser = subparser
    <> command "rollback"
         (info (helper <*> withOptions <*> (Rollback <$> projectArgument))
          (progDesc "Undeploy the last version from the base directory and\
-                   \ redeploy the previous version")))
+                   \ redeploy the previous version"))
+   <> command "show-history"
+        (info (helper <*> withOptions <*> (ShowHistory <$> projectArgument))
+         (progDesc "Show the history of commands ran on this project")))
 
 cmdOptParser :: Parser (Command, Options)
 cmdOptParser = (\o (c, o') -> (c, o <> o')) <$> optParser <*> cmdParser

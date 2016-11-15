@@ -16,13 +16,19 @@ import System.FilePath
 import Mud.Error
 import Mud.FileSystem
 
+type History = [HistoryEntry]
+
 data HistoryEntry
   = HistDeploy   String UTCTime String [(String, String)]
   | HistUndeploy String UTCTime String
   | HistRollback String UTCTime
   deriving (Show, Eq)
 
-type History = [HistoryEntry]
+historyEntryProject :: HistoryEntry -> String
+historyEntryProject = \case
+  HistDeploy n _ _ _ -> n
+  HistUndeploy n _ _ -> n
+  HistRollback n _   -> n
 
 historyToString :: History -> String
 historyToString = intercalate "\n" . map showEntry
@@ -164,5 +170,5 @@ actualAddToHistory :: (MonadFileSystem m, MonadError MudError m) => FilePath
 actualAddToHistory dir entry = do
   hist <- actualReadHistory dir
   let hist' = hist ++ [entry]
-      path = dir </> ".mud-history"
+      path  = dir </> ".mud-history"
   writeFile path $ historyToString hist'

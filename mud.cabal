@@ -31,7 +31,9 @@ library
                      , Mud.FileSystem
                      , Mud.History
                      , Mud.Options
+                     , Mud.Printer
                      , Mud.RunProcess
+                     , Mud.ShowHistory
   other-modules:       Paths_mud
 
   build-depends:       base

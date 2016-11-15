@@ -20,7 +20,6 @@ data Config = Config
   , cfgBasePath       :: FilePath
   , cfgUser           :: Maybe String
   , cfgGroup          :: Maybe String
-  , cfgVersion        :: String
   , cfgVars           :: [(String, String)]
   } deriving (Show, Eq)
 
@@ -31,7 +30,6 @@ defaultConfig path = Config
   , cfgBasePath       = "/tmp"
   , cfgUser           = Nothing
   , cfgGroup          = Nothing
-  , cfgVersion        = ""
   , cfgVars           = []
   }
 
@@ -83,7 +81,7 @@ actualParseConfigFiles projectName = do
         if checkDirExistence
           then do
             paths <- getDirectoryContents configBasePath
-            forM (filter (".conf" `isSuffixOf`) $ sort paths) $ \path -> do
+            forM (sort $ filter (".conf" `isSuffixOf`) paths) $ \path -> do
               contents <- readFile $ configBasePath </> path
               parseConfigFile configBasePath contents
           else
@@ -109,7 +107,6 @@ actualParseConfigFiles projectName = do
         "basepath" -> Right config { cfgBasePath       = value }
         "user"     -> Right config { cfgUser           = Just value }
         "group"    -> Right config { cfgGroup          = Just value }
-        "version"  -> Right config { cfgVersion        = value }
         'v' : 'a' : 'r' : ':' : n ->
           let vars = filter ((/= n) . fst) $ cfgVars config
           in Right config { cfgVars = vars ++ [(n, value)] }

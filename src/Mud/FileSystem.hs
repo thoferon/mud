@@ -42,6 +42,20 @@ runFileSystemT dryRun = iterT interpreter
             f ()
         | otherwise -> liftIO (SIO.writeFile path contents) >>= f
 
+collapseFileSystemT :: Monad m => FileSystemT (FileSystemT m) a
+                    -> FileSystemT m a
+collapseFileSystemT = iterT interpreter
+  where
+    interpreter :: Monad m => FileSystemF (FileSystemT m a) -> FileSystemT m a
+    interpreter = \case
+      GetSysconfDir             f -> getSysconfDir             >>= f
+      CanonicalizePath     path f -> canonicalizePath path     >>= f
+      DoesFileExist        path f -> doesFileExist path        >>= f
+      DoesDirectoryExist   path f -> doesDirectoryExist path   >>= f
+      ReadFile             path f -> readFile path             >>= f
+      GetDirectoryContents path f -> getDirectoryContents path >>= f
+      WriteFile path contents   f -> writeFile path contents   >>= f
+
 class Monad m => MonadFileSystem m where
   getSysconfDir        :: m FilePath
   canonicalizePath     :: FilePath -> m FilePath

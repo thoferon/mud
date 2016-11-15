@@ -33,8 +33,7 @@ spec = do
     prop "is reversed by stringToHistory" $ \hist ->
       stringToHistory "/some/file" (historyToString hist) `shouldBe` Right hist
 
-  let someTime = UTCTime (ModifiedJulianDay 0) (secondsToDiffTime 0)
-      entry1 = HistDeploy "some-project" someTime "version1" []
+  let entry1 = HistDeploy "some-project" someTime "version1" []
       entry2 = HistUndeploy "some-project" someTime "version1"
       entry3 = HistDeploy "some-project" someTime "version2" [("a", "b")]
       files = [ ("/base/path/.mud-history", historyToString [entry1, entry2])
