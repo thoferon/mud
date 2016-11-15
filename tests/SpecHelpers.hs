@@ -1,24 +1,25 @@
 module SpecHelpers
   ( module SpecHelpers
   , module Test.Hspec
+  , module Test.Hspec.QuickCheck
   ) where
 
-import           Control.Monad.Except
-import           Control.Monad.Free
-import           Control.Monad.Identity
-import           Control.Monad.Reader
-import           Control.Monad.Trans.Free hiding (iter)
+import Control.Monad.Except
+import Control.Monad.Free
+import Control.Monad.Reader
+import Control.Monad.State
+import Control.Monad.Trans.Free hiding (iter)
 
-import           Data.Maybe
+import Data.Maybe
 
-import           System.Posix.Process
-import qualified System.Directory as D
+import System.Posix.Process
 
-import           Test.Hspec
+import Test.Hspec
+import Test.Hspec.QuickCheck
 
-import           Mud.Common
-import           Mud.Error
-import           Mud.Options
+import Mud.Common
+import Mud.Error
+import Mud.Options
 
 runFakeMud :: Options -> (String -> [Config])
            -> (Maybe String -> Maybe String -> FilePath -> [String]
@@ -37,22 +38,31 @@ runFakeMud options fakeParseConfigFiles fakeRunProcess action = do
     configInterpreter (ParseConfigFiles projectName f) =
       f $ fakeParseConfigFiles projectName
 
+type FakeFS = ([(FilePath, String)], [(FilePath, [FilePath])])
+
 runFakeFileSystem :: [(FilePath, String)] -> [(FilePath, [FilePath])]
-                  -> (FilePath -> FilePath) -> FileSystemT Identity a -> a
-runFakeFileSystem files dirs fakeCanonicalizePath =
-    runIdentity . iterT interpreter
+                  -> (FilePath -> FilePath) -> FileSystemT (State FakeFS) a -> a
+runFakeFileSystem fs ds fakeCanonicalizePath =
+    fst . flip runState (fs, ds) . iterT interpreter
   where
-    interpreter :: Monad m => FileSystemF (m a) -> m a
+    interpreter :: FileSystemF (State FakeFS a) -> State FakeFS a
     interpreter = \case
       GetSysconfDir             f -> f "/etc"
       CanonicalizePath     path f -> f $ fakeCanonicalizePath path
-      DoesFileExist        path f -> f $ isJust $ lookup path files
-      DoesDirectoryExist   path f -> f $ isJust $ lookup path dirs
-      ReadFile             path f ->
+      DoesFileExist        path f -> get >>= f . isJust . lookup path . fst
+      DoesDirectoryExist   path f -> get >>= f . isJust . lookup path . snd
+      ReadFile             path f -> do
+        (files, _) <- get
         case lookup path files of
           Nothing -> fail $ "File not found: " ++ path
           Just v  -> f v
-      GetDirectoryContents path f ->
+      GetDirectoryContents path f -> do
+        (_, dirs) <- get
         case lookup path dirs of
           Nothing -> fail $ "Directory not found: " ++ path
           Just v  -> f v
+      WriteFile path contents f -> do
+        (files, dirs) <- get
+        let files' = (path, contents) : filter ((/= path) . fst) files
+        put (files', dirs)
+        f ()

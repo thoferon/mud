@@ -3,7 +3,6 @@ module Mud.RunProcessSpec where
 import System.Exit
 import System.Posix.Process
 
-import Mud.Config
 import Mud.RunProcess
 
 import SpecHelpers

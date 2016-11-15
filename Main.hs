@@ -1,5 +1,3 @@
-import Control.Monad.Error
-
 import System.Exit
 import System.IO
 

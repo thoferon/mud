@@ -19,8 +19,9 @@ type Mud = ReaderT Options (ConfigT (ExceptT MudError RunProcess))
 
 runMud :: Options -> Mud a -> IO (Either MudError a)
 runMud options action = do
-  runExceptT $ runFileSystemT $
-    hoistFreeT (mapExceptT (runRunProcess (optDryRun options))) $
+  let dryRun = optDryRun options
+  runExceptT $ runFileSystemT dryRun $
+    hoistFreeT (mapExceptT (runRunProcess dryRun)) $
       runConfigT $ runReaderT action options
 
 getOptions :: Mud Options

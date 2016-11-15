@@ -4,11 +4,7 @@ module Mud.Options
   , getCommandOptions
   ) where
 
-import System.Environment
-
 import Options.Applicative
-import Options.Applicative.Internal
-import Options.Applicative.Types
 
 data Options = Options
   { optDryRun   :: Bool
@@ -61,7 +57,7 @@ variableOptions =
   let reader = do
         s <- str
         case break (=='=') s of
-          (name, '=' : value) -> return (name, value)
+          (name, '=' : val) -> return (name, val)
           _ -> fail $ "invalid variable " ++ show s
       mods = short 'v' <> long "var" <> help "Custom variables"
              <> metavar "NAME=VALUE"
