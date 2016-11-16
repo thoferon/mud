@@ -59,7 +59,8 @@ instance {-# OVERLAPPABLE #-} (MonadTrans t, MonadConfig m, Monad (t m))
 
 actualParseConfigFiles :: (MonadFileSystem m, MonadError MudError m) => FilePath
                        -> String -> m [Config]
-actualParseConfigFiles configDir projectName = do
+actualParseConfigFiles configDirDirty projectName = do
+    configDir <- canonicalizePath configDirDirty
     let configBasePathDirty = configDir </> projectName
     configBasePath <- canonicalizePath configBasePathDirty
 

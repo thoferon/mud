@@ -21,6 +21,7 @@ spec = do
       dirs  = [("/etc/mud/complex", ["01_first.conf", "02_second.conf"])]
 
       canonicalize = \case
+        "/etc/mud"         -> "/etc/mud"
         "/etc/mud/simple"  -> "/etc/mud/simple"
         "/etc/mud/complex" -> "/etc/mud/complex"
         "/etc/mud/missing" -> "/etc/mud/missing"
