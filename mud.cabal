@@ -32,6 +32,7 @@ library
                      , Mud.History
                      , Mud.Options
                      , Mud.Printer
+                     , Mud.Rollback
                      , Mud.RunProcess
                      , Mud.ShowHistory
                      , Mud.Undeploy
@@ -71,6 +72,7 @@ test-suite unit-tests
                        Mud.CommonSpec
                        Mud.DeploySpec
                        Mud.HistorySpec
+                       Mud.RollbackSpec
                        Mud.RunProcessSpec
                        Mud.UndeploySpec
                        SpecHelpers
