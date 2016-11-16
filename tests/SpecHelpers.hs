@@ -84,7 +84,6 @@ runFakeFileSystem fs ds fakeCanonicalizePath =
   where
     interpreter :: FileSystemF (State FakeFS a) -> State FakeFS a
     interpreter = \case
-      GetSysconfDir             f -> f "/etc"
       CanonicalizePath     path f -> f $ fakeCanonicalizePath path
       DoesFileExist        path f -> get >>= f . isJust . lookup path . fst
       DoesDirectoryExist   path f -> get >>= f . isJust . lookup path . snd

@@ -6,6 +6,7 @@ import Control.Monad
 import Control.Monad.Except
 import Control.Monad.Trans.Free
 
+import Data.Maybe
 import Data.List
 
 import System.FilePath
@@ -33,19 +34,18 @@ defaultConfig path = Config
   , cfgVars           = []
   }
 
-data ConfigF a
-  = ParseConfigFiles String ([Config] -> a)
-  deriving Functor
+data ConfigF a = ParseConfigFiles String ([Config] -> a) deriving Functor
 
 type ConfigT = FreeT ConfigF
 
-runConfigT :: MonadError MudError m => ConfigT m a -> FileSystemT m a
-runConfigT = iterTM interpreter
+runConfigT :: MonadError MudError m => Options -> ConfigT m a -> FileSystemT m a
+runConfigT Options{..} = iterTM interpreter
   where
     interpreter :: MonadError MudError m
                 => ConfigF (FileSystemT m a) -> FileSystemT m a
-    interpreter (ParseConfigFiles projectName f) =
-      actualParseConfigFiles projectName >>= f
+    interpreter (ParseConfigFiles projectName f) = do
+      let configDir = fromMaybe "/usr/local/etc/mud" optConfigDir
+      actualParseConfigFiles configDir projectName >>= f
 
 class Monad m => MonadConfig m where
   parseConfigFiles :: String -> m [Config]
@@ -57,15 +57,13 @@ instance {-# OVERLAPPABLE #-} (MonadTrans t, MonadConfig m, Monad (t m))
   => MonadConfig (t m) where
   parseConfigFiles = lift . parseConfigFiles
 
-actualParseConfigFiles :: (MonadFileSystem m, MonadError MudError m) => String
-                       -> m [Config]
-actualParseConfigFiles projectName = do
-    sysconfdir <- getSysconfDir
-    let mudBasePath         = sysconfdir </> "mud"
-        configBasePathDirty = mudBasePath </> projectName
+actualParseConfigFiles :: (MonadFileSystem m, MonadError MudError m) => FilePath
+                       -> String -> m [Config]
+actualParseConfigFiles configDir projectName = do
+    let configBasePathDirty = configDir </> projectName
     configBasePath <- canonicalizePath configBasePathDirty
 
-    unless ((mudBasePath ++ "/") `isPrefixOf` configBasePath) $
+    unless ((configDir ++ "/") `isPrefixOf` configBasePath) $
       throwError MudErrorNotInMudDirectory
 
     let configFilePath = configBasePath <.> "conf"

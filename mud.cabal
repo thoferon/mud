@@ -36,7 +36,6 @@ library
                      , Mud.RunProcess
                      , Mud.ShowHistory
                      , Mud.Undeploy
-  other-modules:       Paths_mud
 
   build-depends:       base
                      , optparse-applicative

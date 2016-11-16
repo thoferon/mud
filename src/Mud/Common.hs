@@ -31,7 +31,8 @@ runMud options action = do
       runPRP = runPrinterT . hoistFreeT (runRunProcess dryRun)
   runExceptT $ runFileSystemT dryRun $
     hoistFreeT (mapExceptT runPRP) $ collapseFileSystemT $
-      hoistFreeT runHistoryT $ runConfigT $ runReaderT action (options, time)
+      hoistFreeT runHistoryT $ runConfigT options $
+        runReaderT action (options, time)
 
 getOptions :: Mud Options
 getOptions = fst <$> ask

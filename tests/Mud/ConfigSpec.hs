@@ -37,23 +37,24 @@ spec = do
             , cfgUser         = Just "somebody"
             , cfgVars         = [("var1", "one"), ("var2", "two")]
             }
-      run (actualParseConfigFiles "simple") `shouldBe` Right [config]
+      run (actualParseConfigFiles "/etc/mud" "simple") `shouldBe` Right [config]
 
     it "returns several configs for /etc/mud/complex/*.conf" $ do
       let mk path = (defaultConfig "/etc/mud/complex") { cfgBasePath = path }
           config1 = mk "/one"
           config2 = mk "/two"
-      run (actualParseConfigFiles "complex") `shouldBe` Right [config1, config2]
+      run (actualParseConfigFiles "/etc/mud" "complex")
+        `shouldBe` Right [config1, config2]
 
     it "throws MudErrorNoConfigFound if the config does not exist" $ do
-      run (actualParseConfigFiles "missing")
+      run (actualParseConfigFiles "/etc/mud" "missing")
         `shouldBe` Left (MudErrorNoConfigFound "/etc/mud/missing")
 
     it "throws MudErrorUnreadableConfig if the config is wrong" $ do
-      run (actualParseConfigFiles "wrong")
+      run (actualParseConfigFiles "/etc/mud" "wrong")
         `shouldBe` Left (MudErrorUnreadableConfig "invalid variable 'mistake'")
 
     it "throws MudErrorNotInMudDirectory if we attempt to go out of the\
        \ configuration directory" $ do
-      run (actualParseConfigFiles "../blah")
+      run (actualParseConfigFiles "/etc/mud" "../blah")
         `shouldBe` Left MudErrorNotInMudDirectory

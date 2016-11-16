@@ -7,21 +7,23 @@ module Mud.Options
 import Options.Applicative
 
 data Options = Options
-  { optDryRun   :: Bool
-  , optUser     :: Maybe String
-  , optGroup    :: Maybe String
-  , optBasePath :: Maybe FilePath
+  { optDryRun    :: Bool
+  , optUser      :: Maybe String
+  , optGroup     :: Maybe String
+  , optBasePath  :: Maybe FilePath
+  , optConfigDir :: Maybe FilePath
   }
 
 instance Monoid Options where
-  mempty = Options False Nothing Nothing Nothing
+  mempty = Options False Nothing Nothing Nothing Nothing
   mappend a b =
     let choose f = maybe (f a) Just (f b) -- choose last one
     in Options
-      { optDryRun   = optDryRun a || optDryRun b
-      , optUser     = choose optUser
-      , optGroup    = choose optGroup
-      , optBasePath = choose optBasePath
+      { optDryRun    = optDryRun a || optDryRun b
+      , optUser      = choose optUser
+      , optGroup     = choose optGroup
+      , optBasePath  = choose optBasePath
+      , optConfigDir = choose optConfigDir
       }
 
 data Command
@@ -34,9 +36,14 @@ optParser :: Parser Options
 optParser = Options
     <$> switch (long "dry-run"
                 <> help "Don't actually run anything on the system")
-    <*> maybeOption (short 'u' <> long "user"  <> help "User to deploy as")
-    <*> maybeOption (short 'g' <> long "group" <> help "Group to deploy as")
-    <*> maybeOption (short 'd' <> long "base-path" <> help "Base directory")
+    <*> maybeOption (short 'u' <> long "user" <> metavar "USER"
+                     <> help "User to deploy as")
+    <*> maybeOption (short 'g' <> long "group" <> metavar "GROUP"
+                     <> help "Group to deploy as")
+    <*> maybeOption (short 'd' <> long "base-path" <> metavar "DIR"
+                     <> help "Base directory")
+    <*> maybeOption (short 'c' <> long "config-directory" <> metavar "DIR"
+                     <> help "Directory containing configuration files")
 
   where
     maybeOption :: Mod OptionFields String -> Parser (Maybe String)
