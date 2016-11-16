@@ -34,6 +34,7 @@ library
                      , Mud.Printer
                      , Mud.RunProcess
                      , Mud.ShowHistory
+                     , Mud.Undeploy
   other-modules:       Paths_mud
 
   build-depends:       base
@@ -71,6 +72,7 @@ test-suite unit-tests
                        Mud.DeploySpec
                        Mud.HistorySpec
                        Mud.RunProcessSpec
+                       Mud.UndeploySpec
                        SpecHelpers
 
   build-depends:       base

@@ -6,14 +6,19 @@ import Mud.Deploy
 import Mud.Error
 import Mud.Options
 import Mud.ShowHistory
+import Mud.Undeploy
 
 main :: IO ()
 main = do
   (cmd, options) <- getCommandOptions
 
   eRes <- runMud options $ case cmd of
-    Deploy projectName mVersion vars -> deployCommand projectName mVersion vars
-    ShowHistory projectName          -> showHistoryCommand projectName
+    Deploy projectName mVersion vars ->
+      deployCommand projectName mVersion vars
+    Undeploy projectName mVersion vars ->
+      undeployCommand projectName mVersion vars
+    ShowHistory projectName ->
+      showHistoryCommand projectName
 
   case eRes of
     Left err -> do

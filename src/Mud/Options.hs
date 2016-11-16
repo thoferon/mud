@@ -26,7 +26,7 @@ instance Monoid Options where
 
 data Command
   = Deploy String String [(String, String)]
-  | Undeploy String String
+  | Undeploy String String [(String, String)]
   | Rollback String
   | ShowHistory String
 
@@ -72,7 +72,8 @@ cmdParser = subparser
      (progDesc "Deploy the given version in the base directory"))
    <> command "undeploy"
         (info (helper <*> withOptions <*>
-               (Undeploy <$> projectArgument <*> versionArgument))
+               (Undeploy <$> projectArgument <*> versionArgument
+                         <*> variableOptions))
          (progDesc "Undeploy the given version from the base directory"))
    <> command "rollback"
         (info (helper <*> withOptions <*> (Rollback <$> projectArgument))
