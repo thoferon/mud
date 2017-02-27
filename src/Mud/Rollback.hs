@@ -24,8 +24,8 @@ rollback _ [] = throwError MudErrorNoRollbackPlanFound
 rollback projectName configs@(Config{..} : _) = do
   Options{..} <- getOptions
   let path = fromMaybe cfgBasePath optBasePath
-  history <- readHistory path
-  let relevantEntries = catMaybes $ flip map history $ \case
+  History{..} <- readHistory path
+  let relevantEntries = catMaybes $ flip map histEntries $ \case
         HistDeploy n _ v vars | n == projectName -> Just (v, vars)
         _ -> Nothing
   case reverse relevantEntries of

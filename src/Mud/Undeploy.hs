@@ -25,12 +25,12 @@ getDeployVariables :: String -> String -> Config -> Mud [(String, String)]
 getDeployVariables projectName version Config{..} = do
   Options{..} <- getOptions
   let path = fromMaybe cfgBasePath optBasePath
-  history <- readHistory path
+  History{..} <- readHistory path
   let step acc = \case
         HistDeploy n _ v vars
           | projectName == n && version == v -> vars
         _ -> acc
-  return $ foldl step [] history
+  return $ foldl step [] histEntries
 
 runUndeployScript :: String -> String -> [(String, String)]
                   -> [(String, String)] -> Config -> Mud ()

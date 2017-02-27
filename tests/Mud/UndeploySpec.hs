@@ -68,7 +68,7 @@ spec = do
 
           entry = HistDeploy "overwrite" someTime "some-version"
                              [("one", "0"), ("three", "3")]
-          histories = [("/tmp", [entry])]
+          histories = [("/tmp", defaultHistory { histEntries = [entry] })]
 
           action = runFakeMudHist mempty parseConfigFiles runProcess histories
                                   (undeployCommand "overwrite" "some-version"
@@ -94,17 +94,23 @@ spec = do
           entry1a = HistDeploy "complex" someTime "version1" [("a","b")]
           entry1b = HistDeploy "complex" someTime "version1" [("c","d")]
           entry2  = HistUndeploy "complex" someTime "version1"
-          histories = [("/one", [entry1a]), ("/two", [entry1b])]
+          histories = [ ("/one", defaultHistory { histEntries = [entry1a] })
+                      , ("/two", defaultHistory { histEntries = [entry1b] })
+                      ]
 
       it "adds a new entry to each history file" $ do
+        let histories' =
+              [ ("/one", defaultHistory { histEntries = [entry1a, entry2] })
+              , ("/two", defaultHistory { histEntries = [entry1b, entry2] }) ]
         runFakeMudHist mempty parseConfigFiles runProcess histories
                        (undeployCommand "complex" "version1" [])
-          `shouldBe` Right ((), [ ("/one", [entry1a, entry2])
-                                , ("/two", [entry1b, entry2]) ])
+          `shouldBe` Right ((), histories')
 
       it "adds a new entry to the base path given in the options if any" $ do
+        let histories' =
+              [ ("/one", defaultHistory { histEntries = [entry1a, entry2] })
+              , ("/two", defaultHistory { histEntries = [entry1b] }) ]
         runFakeMudHist (mempty { optBasePath = Just "/one" })
                        parseConfigFiles runProcess histories
                        (undeployCommand "complex" "version1" [])
-          `shouldBe` Right ((), [ ("/one", [entry1a, entry2])
-                                , ("/two", [entry1b]) ])
+          `shouldBe` Right ((), histories')

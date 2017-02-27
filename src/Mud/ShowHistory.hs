@@ -15,11 +15,12 @@ showHistoryCommand projectName = do
   configs <- parseConfigFiles projectName
   paths   <- workingBasePaths configs
   forM_ paths $ \path -> do
-    history <- readHistory path
-    printHistory path $ filter ((==projectName) . historyEntryProject) history
+    History{..} <- readHistory path
+    printHistory path $
+      filter ((==projectName) . historyEntryProject) histEntries
     putLine ""
 
-printHistory :: FilePath -> History -> Mud ()
+printHistory :: FilePath -> [HistoryEntry] -> Mud ()
 printHistory path entries = do
   putLine $ "History in " ++ path ++ ":"
   let putLine' = putLine . ('\t' :)

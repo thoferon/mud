@@ -26,8 +26,10 @@ spec = do
 
           entry1    = HistDeploy "project" someTime "version1" []
           entry2    = HistDeploy "project" someTime "version2" []
-          history   = [entry1, entry2]
-          history'  = history ++ [HistRollback "project" someTime]
+          history   = defaultHistory { histEntries = [entry1, entry2] }
+          history'  = history
+                        { histEntries = histEntries history
+                                        ++ [HistRollback "project" someTime] }
           histories = [("/tmp", history)]
 
       runFakeMudHist mempty parseConfigFiles runProcess histories

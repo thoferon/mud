@@ -31,6 +31,7 @@ data Command
   | Undeploy String String [(String, String)]
   | Rollback String
   | ShowHistory String
+  | TrimHistory String Bool Int
 
 optParser :: Parser Options
 optParser = Options
@@ -88,7 +89,15 @@ cmdParser = subparser
                    \ redeploy the previous version"))
    <> command "show-history"
         (info (helper <*> withOptions <*> (ShowHistory <$> projectArgument))
-         (progDesc "Show the history of commands ran on this project")))
+         (progDesc "Show the history of commands ran on this project"))
+   <> command "trim-history"
+        (info (helper <*> withOptions
+               <*> (TrimHistory
+                    <$> projectArgument
+                    <*> switch (long "permanent"
+                                <> help "Automatically trim on new entries")
+                    <*> argument auto (metavar "N")))
+         (progDesc "Remove old history entries")))
 
 cmdOptParser :: Parser (Command, Options)
 cmdOptParser = (\o (c, o') -> (c, o <> o')) <$> optParser <*> cmdParser

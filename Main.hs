@@ -7,6 +7,7 @@ import Mud.Error
 import Mud.Options
 import Mud.Rollback
 import Mud.ShowHistory
+import Mud.TrimHistory
 import Mud.Undeploy
 
 main :: IO ()
@@ -18,8 +19,9 @@ main = do
       deployCommand projectName mVersion vars
     Undeploy projectName mVersion vars ->
       undeployCommand projectName mVersion vars
-    Rollback    projectName -> rollbackCommand    projectName
-    ShowHistory projectName -> showHistoryCommand projectName
+    Rollback    projectName        -> rollbackCommand    projectName
+    ShowHistory projectName        -> showHistoryCommand projectName
+    TrimHistory projectName perm n -> trimHistoryCommand projectName perm n
 
   case eRes of
     Left err -> do
