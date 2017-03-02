@@ -24,12 +24,12 @@ spec = do
           runProcess Nothing Nothing "/etc/mud/project.deploy"
                      ["project", "version1", "/tmp"] [] = Exited ExitSuccess
 
-          entry1    = HistDeploy "project" someTime "version1" []
-          entry2    = HistDeploy "project" someTime "version2" []
+          entry1    = HistDeploy "project" someTime True "version1" []
+          entry2    = HistDeploy "project" someTime True "version2" []
           history   = defaultHistory { histEntries = [entry1, entry2] }
           history'  = history
-                        { histEntries = histEntries history
-                                        ++ [HistRollback "project" someTime] }
+            { histEntries = histEntries history
+                            ++ [HistRollback "project" someTime True] }
           histories = [("/tmp", history)]
 
       runFakeMudHist mempty parseConfigFiles runProcess histories

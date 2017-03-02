@@ -66,7 +66,7 @@ spec = do
           runProcess mUser mGroup path args vars =
             error $ show (mUser, mGroup, path, args, vars)
 
-          entry = HistDeploy "overwrite" someTime "some-version"
+          entry = HistDeploy "overwrite" someTime True "some-version"
                              [("one", "0"), ("three", "3")]
           histories = [("/tmp", defaultHistory { histEntries = [entry] })]
 
@@ -91,9 +91,9 @@ spec = do
 
     describe "on history" $ do
       let runProcess _ _ _ _ _ = Exited ExitSuccess
-          entry1a = HistDeploy "complex" someTime "version1" [("a","b")]
-          entry1b = HistDeploy "complex" someTime "version1" [("c","d")]
-          entry2  = HistUndeploy "complex" someTime "version1"
+          entry1a = HistDeploy   "complex" someTime True "version1" [("a","b")]
+          entry1b = HistDeploy   "complex" someTime True "version1" [("c","d")]
+          entry2  = HistUndeploy "complex" someTime True "version1"
           histories = [ ("/one", defaultHistory { histEntries = [entry1a] })
                       , ("/two", defaultHistory { histEntries = [entry1b] })
                       ]

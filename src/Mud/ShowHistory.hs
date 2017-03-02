@@ -25,12 +25,15 @@ printHistory path entries = do
   putLine $ "History in " ++ path ++ ":"
   let putLine' = putLine . ('\t' :)
   forM_ entries $ \case
-    HistDeploy _ t version _ ->
+    HistDeploy _ t done version _ ->
       putLine' $ showTime t ++ "deployed   " ++ version
-    HistUndeploy _ t version ->
+                 ++ if done then " (done)" else ""
+    HistUndeploy _ t done version ->
       putLine' $ showTime t ++ "undeployed " ++ version
-    HistRollback _ t ->
+                 ++ if done then " (done)" else ""
+    HistRollback _ t done ->
       putLine' $ showTime t ++ "rollback"
+                 ++ if done then " (done)" else ""
 
 showTime :: UTCTime -> String
 showTime = (\s -> "[" ++ s ++ "] ") . formatTime defaultTimeLocale "%F %T"

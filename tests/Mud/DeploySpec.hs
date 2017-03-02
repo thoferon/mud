@@ -84,9 +84,9 @@ spec = do
 
     describe "on history" $ do
       let runProcess _ _ _ _ _ = Exited ExitSuccess
-          entry1a = HistDeploy "complex" someTime "version1" [("a","b")]
-          entry1b = HistDeploy "complex" someTime "version1" [("c","d")]
-          entry2  = HistDeploy "complex" someTime "version2" []
+          entry1a = HistDeploy "complex" someTime True "version1" [("a","b")]
+          entry1b = HistDeploy "complex" someTime True "version1" [("c","d")]
+          entry2  = HistDeploy "complex" someTime True "version2" []
           histories = [ ("/one", defaultHistory { histEntries = [entry1a] })
                       , ("/two", defaultHistory { histEntries = [entry1b] })
                       ]

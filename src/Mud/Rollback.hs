@@ -16,8 +16,8 @@ import Mud.Undeploy
 rollbackCommand :: String -> Mud ()
 rollbackCommand projectName = do
   configs <- parseConfigFiles projectName
-  rollback projectName configs
-  addToHistoryFiles configs $ HistRollback projectName
+  withNewHistoryEntries configs (HistRollback projectName) $
+    rollback projectName configs
 
 rollback :: String -> [Config] -> Mud ()
 rollback _ [] = throwError MudErrorNoRollbackPlanFound
@@ -26,7 +26,7 @@ rollback projectName configs@(Config{..} : _) = do
   let path = fromMaybe cfgBasePath optBasePath
   History{..} <- readHistory path
   let relevantEntries = catMaybes $ flip map histEntries $ \case
-        HistDeploy n _ v vars | n == projectName -> Just (v, vars)
+        HistDeploy n _ _ v vars | n == projectName -> Just (v, vars)
         _ -> Nothing
   case reverse relevantEntries of
     (v1, vars1) : (v2, vars2) : _ -> do

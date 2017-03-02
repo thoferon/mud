@@ -48,11 +48,23 @@ uniqAssocList = snd . foldr step ([], [])
     step pair@(key, _) acc@(keys, pairs) =
       if key `elem` keys then acc else (key : keys, pair : pairs)
 
-addToHistoryFiles :: [Config] -> (UTCTime -> HistoryEntry) -> Mud ()
-addToHistoryFiles configs f = do
+withNewHistoryEntries :: [Config] -> (UTCTime -> Bool -> HistoryEntry) -> Mud ()
+                      -> Mud ()
+withNewHistoryEntries configs f action = do
   t     <- getTime
   paths <- workingBasePaths configs
-  mapM_ (\path -> addToHistory path (f t)) paths
+
+  histories <- forM paths $ \path -> do
+    history <- readHistory path
+    let history' = history { histEntries = histEntries history ++ [f t False] }
+    writeHistory path history'
+    return (path, history)
+
+  action
+
+  forM_ histories $ \(path, history) -> do
+    let history' = history { histEntries = histEntries history ++ [f t True] }
+    writeHistory path history'
 
 workingBasePaths :: [Config] -> Mud [FilePath]
 workingBasePaths configs = do

@@ -12,9 +12,9 @@ import Mud.Options
 undeployCommand :: String -> String -> [(String, String)] -> Mud ()
 undeployCommand projectName version customVars = do
   configs <- parseConfigFiles projectName
-  undeploy projectName version customVars configs
-  addToHistoryFiles configs $ \t ->
-    HistUndeploy projectName t version
+  withNewHistoryEntries configs
+    (\t done -> HistUndeploy projectName t done version)
+    (undeploy projectName version customVars configs)
 
 undeploy :: String -> String -> [(String, String)] -> [Config] -> Mud ()
 undeploy projectName version customVars = mapM_ $ \config -> do
@@ -27,7 +27,7 @@ getDeployVariables projectName version Config{..} = do
   let path = fromMaybe cfgBasePath optBasePath
   History{..} <- readHistory path
   let step acc = \case
-        HistDeploy n _ v vars
+        HistDeploy n _ _ v vars
           | projectName == n && version == v -> vars
         _ -> acc
   return $ foldl step [] histEntries

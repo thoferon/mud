@@ -22,9 +22,9 @@ instance Arbitrary HistoryEntry where
     let str  = listOf (elements "abcdefghijklm\t\r\n\\\"\'")
         vars = listOf ((,) <$> str <*> str)
     in oneof
-      [ HistDeploy   <$> str <*> arbitrary <*> str <*> vars
-      , HistUndeploy <$> str <*> arbitrary <*> str
-      , HistRollback <$> str <*> arbitrary
+      [ HistDeploy   <$> str <*> arbitrary <*> arbitrary <*> str <*> vars
+      , HistUndeploy <$> str <*> arbitrary <*> arbitrary <*> str
+      , HistRollback <$> str <*> arbitrary <*> arbitrary
       ]
 
 instance Arbitrary History where
@@ -36,9 +36,8 @@ spec = do
     prop "is reversed by stringToHistory" $ \hist ->
       stringToHistory "/some/file" (historyToString hist) `shouldBe` Right hist
 
-  let entry1 = HistDeploy "some-project" someTime "version1" []
-      entry2 = HistUndeploy "some-project" someTime "version1"
-      entry3 = HistDeploy "some-project" someTime "version2" [("a", "b")]
+  let entry1 = HistDeploy   "some-project" someTime True "version1" [("a", "b")]
+      entry2 = HistUndeploy "some-project" someTime True "version1"
       history = History (Just 20) [entry1, entry2]
       files = [ ( "/base/path/.mud-history" , historyToString history)
               , ("/path/to/wrong/.mud-history", "corrupted")
@@ -65,26 +64,12 @@ spec = do
             actualReadHistory "/base/path"
       run action `shouldBe` Right history
 
-  describe "addToHistory" $ do
-    it "appends a new history to the file" $ do
-      let history' = history { histEntries = histEntries history ++ [entry3] }
-          action   = do
-            writeHistory "/base/path" history
-            addToHistory "/base/path" entry3
-            readHistory  "/base/path"
-
-      runFakeMud mempty (const []) (\_ _ _ _ _ -> undefined)
-                 action `shouldBe` Right history'
-
-    it "appends a new entry and trims the history if a limit is given" $ do
+    it "trims the history if a limit is given" $ do
       let history'  = history
-                        { histLimit = Just $ length $ histEntries history }
-          history'' = history' { histEntries = drop 1 (histEntries history)
-                                               ++ [entry3] }
-          action    = do
-            writeHistory "/base/path" history'
-            addToHistory "/base/path" entry3
-            readHistory  "/base/path"
+                        { histLimit = Just $ length (histEntries history) - 1 }
+          history'' = history' { histEntries = drop 1 (histEntries history) }
+          action = do
+            actualWriteHistory "/base/path" history'
+            actualReadHistory  "/base/path"
 
-      runFakeMud mempty (const []) (\_ _ _ _ _ -> undefined)
-                 action `shouldBe` Right history''
+      run action `shouldBe` Right history''

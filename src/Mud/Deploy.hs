@@ -13,9 +13,9 @@ import Mud.Options
 deployCommand :: String -> String -> [(String, String)] -> Mud ()
 deployCommand projectName version customVars = do
   configs <- parseConfigFiles projectName
-  deploy projectName version customVars configs
-  addToHistoryFiles configs $ \t ->
-    HistDeploy projectName t version customVars
+  withNewHistoryEntries configs
+    (\t done -> HistDeploy projectName t done version customVars)
+    (deploy projectName version customVars configs)
 
 deploy :: String -> String -> [(String, String)] -> [Config] -> Mud ()
 deploy projectName version customVars =

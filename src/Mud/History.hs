@@ -28,16 +28,16 @@ defaultHistory = History
   }
 
 data HistoryEntry
-  = HistDeploy   String UTCTime String [(String, String)]
-  | HistUndeploy String UTCTime String
-  | HistRollback String UTCTime
+  = HistDeploy   String UTCTime Bool String [(String, String)]
+  | HistUndeploy String UTCTime Bool String
+  | HistRollback String UTCTime Bool
   deriving (Show, Eq)
 
 historyEntryProject :: HistoryEntry -> String
 historyEntryProject = \case
-  HistDeploy n _ _ _ -> n
-  HistUndeploy n _ _ -> n
-  HistRollback n _   -> n
+  HistDeploy n _ _ _ _ -> n
+  HistUndeploy n _ _ _ -> n
+  HistRollback n _ _   -> n
 
 historyToString :: History -> String
 historyToString History{..} =
@@ -46,14 +46,16 @@ historyToString History{..} =
 
   where
     showEntry = \case
-      HistDeploy projectName time version vars ->
+      HistDeploy projectName time done version vars ->
         showTime time ++ " deploy(" ++ showString projectName ++ ", "
-        ++ showString version ++ showVars vars ++ ")"
-      HistUndeploy projectName time version ->
+        ++ showString version ++ showVars vars
+        ++ if done then ", done)" else ")"
+      HistUndeploy projectName time done version ->
         showTime time ++ " undeploy(" ++ showString projectName ++ ", "
-        ++ showString version ++ ")"
-      HistRollback projectName time ->
-        showTime time ++ " rollback(" ++ showString projectName ++ ")"
+        ++ showString version ++ if done then ", done)" else ")"
+      HistRollback projectName time done ->
+        showTime time ++ " rollback(" ++ showString projectName
+         ++ if done then ", done)" else ")"
 
     showTime :: UTCTime -> String
     showTime = formatTime defaultTimeLocale "%F %T"
@@ -106,20 +108,23 @@ stringToHistory source = either (Left . show) Right . parse parser source
       projectName <- escapedString
       commaSep
       version <- escapedString
-      vars <- many (commaSep >> variable)
-      return $ HistDeploy projectName t version vars
+      vars <- many $ try $ commaSep >> variable
+      done <- doneFlag
+      return $ HistDeploy projectName t done version vars
 
     undeployEntry :: UTCTime -> Parser HistoryEntry
     undeployEntry t = between (string "undeploy(") (char ')') $ do
       projectName <- escapedString
       commaSep
       version <- escapedString
-      return $ HistUndeploy projectName t version
+      done    <- doneFlag
+      return $ HistUndeploy projectName t done version
 
     rollbackEntry :: UTCTime -> Parser HistoryEntry
     rollbackEntry t = between (string "rollback(") (char ')') $ do
       projectName <- escapedString
-      return $ HistRollback projectName t
+      done        <- doneFlag
+      return $ HistRollback projectName t done
 
     commaSep :: Parser ()
     commaSep = char ',' >> optional (char ' ')
@@ -142,6 +147,9 @@ stringToHistory source = either (Left . show) Right . parse parser source
               'n'  -> return '\n'
               _ -> fail $ "unreable special character '\\" ++ c : "'"
       char '"' >> manyTill (specialChar <|> anyToken) (char '"')
+
+    doneFlag :: Parser Bool
+    doneFlag = try (commaSep >> string "done" >> return True) <|> return False
 
 data HistoryF a
   = ReadHistory FilePath (History -> a)
@@ -172,17 +180,6 @@ instance {-# OVERLAPPABLE #-} (MonadTrans t, MonadHistory m, Monad (t m))
   readHistory            = lift . readHistory
   writeHistory path hist = lift $ writeHistory path hist
 
-addToHistory :: MonadHistory m => FilePath -> HistoryEntry -> m ()
-addToHistory path entry = do
-  history <- readHistory path
-  let entries  = histEntries history ++ [entry]
-      entries' = maybe id takeLast (histLimit history) entries
-      history' = history { histEntries = entries' }
-  writeHistory path history'
-
-takeLast :: Int -> [a] -> [a]
-takeLast n = reverse . take n . reverse
-
 actualReadHistory :: (MonadFileSystem m, MonadError MudError m) => FilePath
                   -> m History
 actualReadHistory dir = do
@@ -200,4 +197,12 @@ actualWriteHistory :: (MonadFileSystem m, MonadError MudError m) => FilePath
                    -> History -> m ()
 actualWriteHistory dir hist = do
   let path  = dir </> ".mud-history"
-  writeFile path $ historyToString hist
+      hist' = trimHistory hist
+  writeFile path $ historyToString hist'
+
+trimHistory :: History -> History
+trimHistory hist =
+  hist { histEntries = maybe id takeLast (histLimit hist) (histEntries hist) }
+
+takeLast :: Int -> [a] -> [a]
+takeLast n = reverse . take n . reverse

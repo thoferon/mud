@@ -70,9 +70,10 @@ runFakeMudHist options fakeParseConfigFiles fakeRunProcess hs action = do
           Just h  -> f h
       WriteHistory path hist f -> do
         histories <- get
+        let hist' = trimHistory hist
         put $ case lookup path histories of
-          Nothing -> (path, hist) : histories
-          Just _  -> (path, hist) : filter ((/= path) . fst) histories
+          Nothing -> (path, hist') : histories
+          Just _  -> (path, hist') : filter ((/= path) . fst) histories
         f ()
 
 type FakeFS = ([(FilePath, String)], [(FilePath, [FilePath])])
